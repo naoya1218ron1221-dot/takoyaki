@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Plus, Sparkles } from 'lucide-react'
 import { useGoals } from './hooks/useGoals'
+import { useReminder } from './hooks/useReminder'
 import GoalCard from './components/GoalCard'
 import GoalModal from './components/GoalModal'
 import type { Goal } from './types/goal'
+import type { ReminderInterval } from './types/goal'
 
 function formatYen(amount: number) {
   return amount.toLocaleString('ja-JP')
@@ -11,6 +13,7 @@ function formatYen(amount: number) {
 
 export default function App() {
   const { goals, addGoal, updateGoal, deleteGoal } = useGoals()
+  const { permission, requestPermission } = useReminder(goals)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
 
@@ -29,13 +32,25 @@ export default function App() {
     }
   }
 
-  const handleSave = (data: { name: string; emoji: string; targetAmount: number; currentAmount: number }) => {
+  const handleSave = (data: { name: string; emoji: string; targetAmount: number; currentAmount: number; reminderEnabled: boolean; reminderInterval: ReminderInterval }) => {
     if (editingGoal) {
       updateGoal(editingGoal.id, data)
     } else {
       addGoal(data)
     }
     setEditingGoal(null)
+  }
+
+  const handleToggleReminder = async (id: string) => {
+    const goal = goals.find((g) => g.id === id)
+    if (!goal) return
+
+    if (!goal.reminderEnabled && permission !== 'granted') {
+      const result = await requestPermission()
+      if (result !== 'granted') return
+    }
+
+    updateGoal(id, { reminderEnabled: !goal.reminderEnabled })
   }
 
   const handleCloseModal = () => {
@@ -92,6 +107,7 @@ export default function App() {
                 goal={goal}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                onToggleReminder={handleToggleReminder}
               />
             ))}
           </div>

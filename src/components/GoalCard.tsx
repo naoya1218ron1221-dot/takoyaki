@@ -1,4 +1,4 @@
-import { Pencil, Trash2, TrendingUp } from 'lucide-react'
+import { Pencil, Trash2, TrendingUp, Bell, BellOff } from 'lucide-react'
 import type { Goal } from '../types/goal'
 
 function formatYen(amount: number) {
@@ -19,13 +19,20 @@ function getProgressBg(percent: number) {
   return 'bg-indigo-100'
 }
 
+const INTERVAL_LABEL: Record<string, string> = {
+  daily: '毎日',
+  weekly: '毎週',
+  monthly: '毎月',
+}
+
 interface GoalCardProps {
   goal: Goal
   onEdit: (goal: Goal) => void
   onDelete: (id: string) => void
+  onToggleReminder: (id: string) => void
 }
 
-export default function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
+export default function GoalCard({ goal, onEdit, onDelete, onToggleReminder }: GoalCardProps) {
   const percent = goal.targetAmount > 0
     ? Math.min(Math.round((goal.currentAmount / goal.targetAmount) * 100), 100)
     : 0
@@ -45,6 +52,18 @@ export default function GoalCard({ goal, onEdit, onDelete }: GoalCardProps) {
           </div>
         </div>
         <div className="flex gap-1">
+          <button
+            onClick={() => onToggleReminder(goal.id)}
+            className={`p-2 rounded-lg transition-colors ${
+              goal.reminderEnabled
+                ? 'text-amber-500 hover:bg-amber-50'
+                : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+            }`}
+            aria-label={goal.reminderEnabled ? 'リマインダーOFF' : 'リマインダーON'}
+            title={goal.reminderEnabled ? `リマインダーON（${INTERVAL_LABEL[goal.reminderInterval]}）` : 'リマインダーOFF'}
+          >
+            {goal.reminderEnabled ? <Bell size={16} /> : <BellOff size={16} />}
+          </button>
           <button
             onClick={() => onEdit(goal)}
             className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"

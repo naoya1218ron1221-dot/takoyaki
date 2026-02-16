@@ -1,3 +1,5 @@
+export type ReminderInterval = 'daily' | 'weekly' | 'monthly'
+
 export interface Goal {
   id: string
   name: string
@@ -5,4 +7,6 @@ export interface Goal {
   targetAmount: number
   currentAmount: number
   createdAt: string
+  reminderEnabled: boolean
+  reminderInterval: ReminderInterval
 }

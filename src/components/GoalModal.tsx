@@ -1,13 +1,19 @@
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
-import type { Goal } from '../types/goal'
+import { X, Bell } from 'lucide-react'
+import type { Goal, ReminderInterval } from '../types/goal'
 
 const EMOJI_OPTIONS = ['✈️', '💎', '🏠', '🚗', '🎓', '💻', '🎸', '🏖️', '👶', '🎯', '💍', '🍽️', '🏔️', '🎮', '📱']
+
+const INTERVAL_OPTIONS: { value: ReminderInterval; label: string }[] = [
+  { value: 'daily', label: '毎日' },
+  { value: 'weekly', label: '毎週' },
+  { value: 'monthly', label: '毎月' },
+]
 
 interface GoalModalProps {
   open: boolean
   onClose: () => void
-  onSave: (data: { name: string; emoji: string; targetAmount: number; currentAmount: number }) => void
+  onSave: (data: { name: string; emoji: string; targetAmount: number; currentAmount: number; reminderEnabled: boolean; reminderInterval: ReminderInterval }) => void
   initial?: Goal | null
 }
 
@@ -16,6 +22,8 @@ export default function GoalModal({ open, onClose, onSave, initial }: GoalModalP
   const [emoji, setEmoji] = useState('🎯')
   const [targetAmount, setTargetAmount] = useState('')
   const [currentAmount, setCurrentAmount] = useState('')
+  const [reminderEnabled, setReminderEnabled] = useState(false)
+  const [reminderInterval, setReminderInterval] = useState<ReminderInterval>('weekly')
 
   useEffect(() => {
     if (initial) {
@@ -23,11 +31,15 @@ export default function GoalModal({ open, onClose, onSave, initial }: GoalModalP
       setEmoji(initial.emoji)
       setTargetAmount(String(initial.targetAmount))
       setCurrentAmount(String(initial.currentAmount))
+      setReminderEnabled(initial.reminderEnabled ?? false)
+      setReminderInterval(initial.reminderInterval ?? 'weekly')
     } else {
       setName('')
       setEmoji('🎯')
       setTargetAmount('')
       setCurrentAmount('')
+      setReminderEnabled(false)
+      setReminderInterval('weekly')
     }
   }, [initial, open])
 
@@ -41,6 +53,8 @@ export default function GoalModal({ open, onClose, onSave, initial }: GoalModalP
       emoji,
       targetAmount: Number(targetAmount),
       currentAmount: Number(currentAmount) || 0,
+      reminderEnabled,
+      reminderInterval,
     })
     onClose()
   }
@@ -117,6 +131,46 @@ export default function GoalModal({ open, onClose, onSave, initial }: GoalModalP
               min="0"
               className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-gray-800 placeholder:text-gray-300"
             />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <Bell size={16} />
+                リマインダー
+              </label>
+              <button
+                type="button"
+                onClick={() => setReminderEnabled(!reminderEnabled)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  reminderEnabled ? 'bg-indigo-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    reminderEnabled ? 'translate-x-5' : ''
+                  }`}
+                />
+              </button>
+            </div>
+            {reminderEnabled && (
+              <div className="flex gap-2 mt-3">
+                {INTERVAL_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setReminderInterval(opt.value)}
+                    className={`flex-1 py-2 text-sm rounded-xl font-medium transition-all ${
+                      reminderInterval === opt.value
+                        ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-400'
+                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <button
