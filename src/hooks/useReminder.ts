@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import type { Goal, ReminderInterval } from '../types/goal'
+import type { Goal, DateCounter, ReminderInterval } from '../types/goal'
 
 const LAST_NOTIFIED_KEY = 'yabou-tracker-last-notified'
 
@@ -29,31 +29,58 @@ function saveLastNotified(data: Record<string, number>) {
   localStorage.setItem(LAST_NOTIFIED_KEY, JSON.stringify(data))
 }
 
-function isDue(goalId: string, interval: ReminderInterval): boolean {
+function isDue(id: string, interval: ReminderInterval): boolean {
   const lastNotified = loadLastNotified()
-  const last = lastNotified[goalId]
+  const last = lastNotified[id]
   if (!last) return true
   return Date.now() - last >= getIntervalMs(interval)
 }
 
-function markNotified(goalId: string) {
+function markNotified(id: string) {
   const data = loadLastNotified()
-  data[goalId] = Date.now()
+  data[id] = Date.now()
   saveLastNotified(data)
 }
 
-function sendNotification(goal: Goal) {
+function sendGoalNotification(goal: Goal) {
   const percent = goal.targetAmount > 0
     ? Math.min(Math.round((goal.currentAmount / goal.targetAmount) * 100), 100)
     : 0
 
   new Notification(`${goal.emoji} ${goal.name}`, {
-    body: `現在 ${percent}% 達成中！進捗を更新しましょう 💪`,
+    body: `現在 ${percent}% 達成中！進捗を更新しましょう`,
     tag: `reminder-${goal.id}`,
   })
 }
 
-export function useReminder(goals: Goal[]) {
+function sendDateCounterNotification(counter: DateCounter) {
+  const target = new Date(counter.date + 'T00:00:00')
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const diffDays = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+
+  if (counter.type === 'countup') {
+    const elapsed = Math.abs(diffDays)
+    new Notification(`${counter.emoji} ${counter.name}`, {
+      body: `${elapsed}日目です！`,
+      tag: `reminder-date-${counter.id}`,
+    })
+  } else {
+    if (diffDays > 0) {
+      new Notification(`${counter.emoji} ${counter.name}`, {
+        body: `あと${diffDays}日です！`,
+        tag: `reminder-date-${counter.id}`,
+      })
+    } else if (diffDays === 0) {
+      new Notification(`${counter.emoji} ${counter.name}`, {
+        body: `今日です！`,
+        tag: `reminder-date-${counter.id}`,
+      })
+    }
+  }
+}
+
+export function useReminder(goals: Goal[], dateCounters: DateCounter[]) {
   const [permission, setPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'denied'
   )
@@ -68,6 +95,7 @@ export function useReminder(goals: Goal[]) {
   const checkReminders = useCallback(() => {
     if (permission !== 'granted') return
 
+    // Check goal reminders
     for (const goal of goals) {
       if (!goal.reminderEnabled) continue
       const percent = goal.targetAmount > 0
@@ -76,11 +104,21 @@ export function useReminder(goals: Goal[]) {
       if (percent >= 100) continue
 
       if (isDue(goal.id, goal.reminderInterval)) {
-        sendNotification(goal)
+        sendGoalNotification(goal)
         markNotified(goal.id)
       }
     }
-  }, [goals, permission])
+
+    // Check date counter reminders
+    for (const counter of dateCounters) {
+      if (!counter.reminderEnabled) continue
+
+      if (isDue(`date-${counter.id}`, counter.reminderInterval)) {
+        sendDateCounterNotification(counter)
+        markNotified(`date-${counter.id}`)
+      }
+    }
+  }, [goals, dateCounters, permission])
 
   // Check reminders on mount and periodically (every 60 minutes)
   useEffect(() => {

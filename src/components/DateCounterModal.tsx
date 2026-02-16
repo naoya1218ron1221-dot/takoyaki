@@ -1,0 +1,207 @@
+import { useState, useEffect } from 'react'
+import { X, Bell } from 'lucide-react'
+import type { DateCounter, DateCounterType, ReminderInterval } from '../types/goal'
+
+const EMOJI_OPTIONS = ['💑', '🎂', '✈️', '🏠', '💍', '👶', '🎓', '🏖️', '🎯', '💎', '🎸', '🚗', '📱', '🎮', '🏔️']
+
+const INTERVAL_OPTIONS: { value: ReminderInterval; label: string }[] = [
+  { value: 'daily', label: '毎日' },
+  { value: 'weekly', label: '毎週' },
+  { value: 'monthly', label: '毎月' },
+]
+
+interface DateCounterModalProps {
+  open: boolean
+  onClose: () => void
+  onSave: (data: Omit<DateCounter, 'id' | 'createdAt'>) => void
+  initial?: DateCounter | null
+}
+
+export default function DateCounterModal({ open, onClose, onSave, initial }: DateCounterModalProps) {
+  const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState('💑')
+  const [date, setDate] = useState('')
+  const [type, setType] = useState<DateCounterType>('countup')
+  const [reminderEnabled, setReminderEnabled] = useState(false)
+  const [reminderInterval, setReminderInterval] = useState<ReminderInterval>('weekly')
+
+  useEffect(() => {
+    if (initial) {
+      setName(initial.name)
+      setEmoji(initial.emoji)
+      setDate(initial.date)
+      setType(initial.type)
+      setReminderEnabled(initial.reminderEnabled ?? false)
+      setReminderInterval(initial.reminderInterval ?? 'weekly')
+    } else {
+      setName('')
+      setEmoji('💑')
+      setDate('')
+      setType('countup')
+      setReminderEnabled(false)
+      setReminderInterval('weekly')
+    }
+  }, [initial, open])
+
+  if (!open) return null
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!name.trim() || !date) return
+    onSave({
+      name: name.trim(),
+      emoji,
+      date,
+      type,
+      reminderEnabled,
+      reminderInterval,
+    })
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 pb-8 sm:pb-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-gray-800">
+            {initial ? '日にちカウンターを編集' : '日にちカウンターを追加'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Type selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">タイプ</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setType('countup')}
+                className={`flex-1 py-2.5 text-sm rounded-xl font-medium transition-all ${
+                  type === 'countup'
+                    ? 'bg-rose-100 text-rose-600 ring-2 ring-rose-400'
+                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                経過日数
+              </button>
+              <button
+                type="button"
+                onClick={() => setType('countdown')}
+                className={`flex-1 py-2.5 text-sm rounded-xl font-medium transition-all ${
+                  type === 'countdown'
+                    ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-400'
+                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                }`}
+              >
+                カウントダウン
+              </button>
+            </div>
+          </div>
+
+          {/* Emoji picker */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">アイコン</label>
+            <div className="flex flex-wrap gap-2">
+              {EMOJI_OPTIONS.map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => setEmoji(e)}
+                  className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
+                    emoji === e
+                      ? 'bg-indigo-100 ring-2 ring-indigo-400 scale-110'
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">名前</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={type === 'countup' ? '例: ふたりの記念日' : '例: 旅行まで'}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-gray-800 placeholder:text-gray-300"
+              required
+            />
+          </div>
+
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">
+              {type === 'countup' ? '開始日' : '目標日'}
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-gray-800"
+              required
+            />
+          </div>
+
+          {/* Reminder */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+                <Bell size={16} />
+                リマインダー
+              </label>
+              <button
+                type="button"
+                onClick={() => setReminderEnabled(!reminderEnabled)}
+                className={`relative w-11 h-6 rounded-full transition-colors ${
+                  reminderEnabled ? 'bg-indigo-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    reminderEnabled ? 'translate-x-5' : ''
+                  }`}
+                />
+              </button>
+            </div>
+            {reminderEnabled && (
+              <div className="flex gap-2 mt-3">
+                {INTERVAL_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setReminderInterval(opt.value)}
+                    className={`flex-1 py-2 text-sm rounded-xl font-medium transition-all ${
+                      reminderInterval === opt.value
+                        ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-400'
+                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3 bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-bold rounded-xl hover:from-indigo-600 hover:to-violet-600 transition-all shadow-lg shadow-indigo-200 active:scale-[0.98]"
+          >
+            {initial ? '更新する' : 'カウンターを追加!'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
