@@ -4,8 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ballparkdiary.data.dao.MonthlyStat
+import com.example.ballparkdiary.data.dao.MonthlySpending
 import com.example.ballparkdiary.data.dao.OpponentStat
+import com.example.ballparkdiary.data.dao.StadiumSpending
 import com.example.ballparkdiary.data.dao.StadiumStat
+import com.example.ballparkdiary.data.dao.WeatherStat
 import com.example.ballparkdiary.data.database.AppDatabase
 import com.example.ballparkdiary.data.entity.GameRecord
 import com.example.ballparkdiary.data.repository.GameRepository
@@ -23,6 +26,13 @@ data class StreakInfo(
     val currentCount: Int,
     val maxWinStreak: Int,
     val maxLoseStreak: Int
+)
+
+data class CompanionStat(
+    val name: String,
+    val wins: Int,
+    val loses: Int,
+    val total: Int
 )
 
 class GameViewModel(application: Application) : AndroidViewModel(application) {
@@ -47,7 +57,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val stadiumStats: StateFlow<List<StadiumStat>>
     val opponentStats: StateFlow<List<OpponentStat>>
     val monthlyStats: StateFlow<List<MonthlyStat>>
+    val weatherStats: StateFlow<List<WeatherStat>>
+    val stadiumSpending: StateFlow<List<StadiumSpending>>
+    val monthlySpending: StateFlow<List<MonthlySpending>>
+    val totalSpending: StateFlow<Int>
     val streakInfo: StateFlow<StreakInfo>
+    val companionStats: StateFlow<List<CompanionStat>>
 
     init {
         val dao = AppDatabase.getDatabase(application).gameDao()
@@ -77,10 +92,23 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, whileSubscribed, emptyList())
         monthlyStats = repository.monthlyStats
             .stateIn(viewModelScope, whileSubscribed, emptyList())
+        weatherStats = repository.weatherStats
+            .stateIn(viewModelScope, whileSubscribed, emptyList())
+        stadiumSpending = repository.stadiumSpending
+            .stateIn(viewModelScope, whileSubscribed, emptyList())
+        monthlySpending = repository.monthlySpending
+            .stateIn(viewModelScope, whileSubscribed, emptyList())
+        totalSpending = repository.totalSpending
+            .stateIn(viewModelScope, whileSubscribed, 0)
 
         streakInfo = repository.resultSequence.map { results ->
             calculateStreak(results)
         }.stateIn(viewModelScope, whileSubscribed, StreakInfo("", 0, 0, 0))
+
+        // 同行者別集計 (カンマ区切りを分割してクライアント側で集計)
+        companionStats = repository.allRecords.map { records ->
+            calculateCompanionStats(records)
+        }.stateIn(viewModelScope, whileSubscribed, emptyList())
     }
 
     fun setResultFilter(filter: String?) {
@@ -118,8 +146,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun calculateStreak(results: List<String>): StreakInfo {
         if (results.isEmpty()) return StreakInfo("", 0, 0, 0)
 
-        var currentType = results.first()
-        var currentCount = 0
+        val currentType = results.first()
         var maxWin = 0
         var maxLose = 0
         var streak = 0
@@ -136,13 +163,37 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             if (r == "LOSE") maxLose = maxOf(maxLose, streak)
         }
 
-        // 現在のストリーク
-        currentCount = 1
+        var currentCount = 1
         for (i in 1 until results.size) {
             if (results[i] == currentType) currentCount++
             else break
         }
 
         return StreakInfo(currentType, currentCount, maxWin, maxLose)
+    }
+
+    private fun calculateCompanionStats(records: List<GameRecord>): List<CompanionStat> {
+        val companionMap = mutableMapOf<String, MutableList<String>>()
+
+        for (record in records) {
+            val names = record.companions
+                ?.split(",")
+                ?.map { it.trim() }
+                ?.filter { it.isNotBlank() }
+                ?: continue
+
+            for (name in names) {
+                companionMap.getOrPut(name) { mutableListOf() }.add(record.result)
+            }
+        }
+
+        return companionMap.map { (name, results) ->
+            CompanionStat(
+                name = name,
+                wins = results.count { it == "WIN" },
+                loses = results.count { it == "LOSE" },
+                total = results.count { it != "CANCELLED" }
+            )
+        }.sortedByDescending { it.total }
     }
 }

@@ -105,6 +105,7 @@ fun HistoryScreen(
             val draws = allRecords.count { it.result == "DRAW" }
             val total = allRecords.count { it.result != "CANCELLED" }
             val rate = if (total > 0) wins.toFloat() / total * 100 else 0f
+            val spending = allRecords.mapNotNull { it.ticketPrice }.sum()
 
             Card(
                 modifier = Modifier
@@ -114,29 +115,37 @@ fun HistoryScreen(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 )
             ) {
-                Row(
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "%.1f%%".format(rate),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "${wins}勝 ${loses}敗 ${draws}分",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = "全${allRecords.size}試合",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                    )
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "%.1f%%".format(rate),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "${wins}勝 ${loses}敗 ${draws}分",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                        Text(
+                            text = "全${allRecords.size}試合",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                    if (spending > 0) {
+                        Text(
+                            text = "累計チケット代: %,d円".format(spending),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
             }
 
@@ -253,16 +262,39 @@ private fun GameRecordItem(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = record.date,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // 日付 + 天気
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = record.date,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    record.weather?.let { w ->
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = weatherEmoji(w),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
                 Text(
                     text = "${record.stadium} vs ${record.opponent}",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
+                // 座席・チケット代・同行者のサブ情報行
+                val subInfoParts = mutableListOf<String>()
+                record.seatInfo?.let { subInfoParts.add(it) }
+                record.ticketPrice?.let { subInfoParts.add("%,d円".format(it)) }
+                record.companions?.let { subInfoParts.add(it) }
+                if (subInfoParts.isNotEmpty()) {
+                    Text(
+                        text = subInfoParts.joinToString(" / "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                }
                 if (record.memo.isNotBlank()) {
                     Text(
                         text = record.memo,

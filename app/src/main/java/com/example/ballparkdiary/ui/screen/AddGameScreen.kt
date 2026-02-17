@@ -2,13 +2,14 @@ package com.example.ballparkdiary.ui.screen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -23,17 +24,16 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,7 +75,9 @@ private val resultColors = mapOf(
     "CANCELLED" to Color(0xFF9E9E9E)
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val weatherOptions = listOf("晴れ", "曇り", "雨", "ドーム", "その他")
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AddGameScreen(
     viewModel: GameViewModel,
@@ -93,10 +95,13 @@ fun AddGameScreen(
     var selectedResult by remember { mutableStateOf(editRecord?.result ?: "WIN") }
     var myScoreText by remember { mutableStateOf(editRecord?.myScore?.toString() ?: "") }
     var opponentScoreText by remember { mutableStateOf(editRecord?.opponentScore?.toString() ?: "") }
+    var seatInfo by remember { mutableStateOf(editRecord?.seatInfo ?: "") }
+    var ticketPriceText by remember { mutableStateOf(editRecord?.ticketPrice?.toString() ?: "") }
+    var selectedWeather by remember { mutableStateOf(editRecord?.weather ?: "") }
+    var companions by remember { mutableStateOf(editRecord?.companions ?: "") }
     var memo by remember { mutableStateOf(editRecord?.memo ?: "") }
     var showDatePicker by remember { mutableStateOf(false) }
 
-    // DatePicker のミリ秒をyyyy-MM-ddに変換
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = try {
@@ -140,7 +145,11 @@ fun AddGameScreen(
                 .fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 日付（DatePickerボタン付き）
+            // ===== 基本情報 =====
+            Text("基本情報", style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary)
+
+            // 日付
             OutlinedTextField(
                 value = date,
                 onValueChange = { date = it },
@@ -224,9 +233,9 @@ fun AddGameScreen(
                 }
             }
 
-            // 勝敗（色付きチップ）
+            // 勝敗
             Text("勝敗", style = MaterialTheme.typography.labelLarge)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 resultOptions.forEach { (value, label) ->
                     val chipColor = resultColors[value] ?: Color.Gray
                     FilterChip(
@@ -270,6 +279,60 @@ fun AddGameScreen(
                 )
             }
 
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+            // ===== 観戦情報 =====
+            Text("観戦情報", style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary)
+
+            // 天気
+            Text("天気", style = MaterialTheme.typography.labelLarge)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                weatherOptions.forEach { weather ->
+                    FilterChip(
+                        selected = selectedWeather == weather,
+                        onClick = {
+                            selectedWeather = if (selectedWeather == weather) "" else weather
+                        },
+                        label = { Text("${weatherEmoji(weather)} $weather") }
+                    )
+                }
+            }
+
+            // 座席情報
+            OutlinedTextField(
+                value = seatInfo,
+                onValueChange = { seatInfo = it },
+                label = { Text("座席情報") },
+                placeholder = { Text("例: 内野A指定席 1塁側 10列") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // チケット代
+            OutlinedTextField(
+                value = ticketPriceText,
+                onValueChange = { if (it.all { c -> c.isDigit() } && it.length <= 6) ticketPriceText = it },
+                label = { Text("チケット代 (円)") },
+                placeholder = { Text("例: 4500") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                suffix = { Text("円") }
+            )
+
+            // 同行者
+            OutlinedTextField(
+                value = companions,
+                onValueChange = { companions = it },
+                label = { Text("同行者") },
+                placeholder = { Text("例: 太郎, 花子 (カンマ区切り)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
             // メモ
             OutlinedTextField(
                 value = memo,
@@ -288,16 +351,18 @@ fun AddGameScreen(
             Button(
                 onClick = {
                     if (date.isNotBlank() && stadium.isNotBlank() && opponent.isNotBlank()) {
-                        val myScore = myScoreText.toIntOrNull()
-                        val oppScore = opponentScoreText.toIntOrNull()
                         val record = GameRecord(
                             id = editRecord?.id ?: 0,
                             date = date,
                             stadium = stadium,
                             opponent = opponent,
                             result = selectedResult,
-                            myScore = myScore,
-                            opponentScore = oppScore,
+                            myScore = myScoreText.toIntOrNull(),
+                            opponentScore = opponentScoreText.toIntOrNull(),
+                            seatInfo = seatInfo.ifBlank { null },
+                            ticketPrice = ticketPriceText.toIntOrNull(),
+                            weather = selectedWeather.ifBlank { null },
+                            companions = companions.ifBlank { null },
                             memo = memo,
                             createdAt = editRecord?.createdAt ?: System.currentTimeMillis()
                         )
@@ -318,4 +383,12 @@ fun AddGameScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+fun weatherEmoji(weather: String): String = when (weather) {
+    "晴れ" -> "\u2600\uFE0F"
+    "曇り" -> "\u2601\uFE0F"
+    "雨" -> "\u2614"
+    "ドーム" -> "\uD83C\uDFDF\uFE0F"
+    else -> "\uD83C\uDF00"
 }

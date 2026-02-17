@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import com.example.ballparkdiary.data.dao.GameDao
 import com.example.ballparkdiary.data.entity.GameRecord
 
-@Database(entities = [GameRecord::class], version = 2, exportSchema = false)
+@Database(entities = [GameRecord::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun gameDao(): GameDao

@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ScrollableTabRow
@@ -31,10 +32,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.ballparkdiary.data.dao.MonthlySpending
+import com.example.ballparkdiary.data.dao.StadiumSpending
+import com.example.ballparkdiary.data.dao.WeatherStat
+import com.example.ballparkdiary.ui.viewmodel.CompanionStat
 import com.example.ballparkdiary.ui.viewmodel.GameViewModel
 import com.example.ballparkdiary.ui.viewmodel.StreakInfo
 
-private val tabs = listOf("総合", "球場別", "対戦相手別", "月別")
+private val tabs = listOf("総合", "球場別", "対戦相手別", "月別", "天気別", "支出", "同行者別")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,6 +51,11 @@ fun StatsScreen(viewModel: GameViewModel) {
     val stadiumStats by viewModel.stadiumStats.collectAsStateWithLifecycle()
     val opponentStats by viewModel.opponentStats.collectAsStateWithLifecycle()
     val monthlyStats by viewModel.monthlyStats.collectAsStateWithLifecycle()
+    val weatherStats by viewModel.weatherStats.collectAsStateWithLifecycle()
+    val stadiumSpending by viewModel.stadiumSpending.collectAsStateWithLifecycle()
+    val monthlySpending by viewModel.monthlySpending.collectAsStateWithLifecycle()
+    val totalSpending by viewModel.totalSpending.collectAsStateWithLifecycle()
+    val companionStats by viewModel.companionStats.collectAsStateWithLifecycle()
     val streakInfo by viewModel.streakInfo.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -64,10 +74,13 @@ fun StatsScreen(viewModel: GameViewModel) {
         }
 
         when (selectedTab) {
-            0 -> OverallTab(totalGames, winCount, loseCount, drawCount, streakInfo)
+            0 -> OverallTab(totalGames, winCount, loseCount, drawCount, streakInfo, totalSpending)
             1 -> StadiumTab(stadiumStats)
             2 -> OpponentTab(opponentStats)
             3 -> MonthlyTab(monthlyStats)
+            4 -> WeatherTab(weatherStats)
+            5 -> SpendingTab(totalSpending, stadiumSpending, monthlySpending)
+            6 -> CompanionTab(companionStats)
         }
     }
 }
@@ -80,7 +93,8 @@ private fun OverallTab(
     winCount: Int,
     loseCount: Int,
     drawCount: Int,
-    streakInfo: StreakInfo
+    streakInfo: StreakInfo,
+    totalSpending: Int
 ) {
     val winRate = if (totalGames > 0) winCount.toFloat() / totalGames * 100 else 0f
 
@@ -139,7 +153,6 @@ private fun OverallTab(
                     Text("ストリーク", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // 現在のストリーク
                     if (streakInfo.currentType.isNotEmpty()) {
                         val (label, color) = when (streakInfo.currentType) {
                             "WIN" -> "連勝中" to Color(0xFF4CAF50)
@@ -187,6 +200,34 @@ private fun OverallTab(
             }
         }
 
+        // 累計支出カード
+        if (totalSpending > 0) {
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text("累計チケット代", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "%,d円".format(totalSpending),
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF2196F3)
+                        )
+                        if (totalGames > 0) {
+                            Text(
+                                text = "1試合あたり平均 %,d円".format(totalSpending / totalGames),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         item { Spacer(modifier = Modifier.height(8.dp)) }
     }
 }
@@ -209,7 +250,6 @@ private fun StadiumTab(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item { Spacer(modifier = Modifier.height(4.dp)) }
-
         items(stats) { stat ->
             val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
             StatCard(
@@ -218,7 +258,6 @@ private fun StadiumTab(
                 detail = "${stat.wins}勝 ${stat.loses}敗 / ${stat.total}試合"
             )
         }
-
         item { Spacer(modifier = Modifier.height(8.dp)) }
     }
 }
@@ -241,7 +280,6 @@ private fun OpponentTab(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item { Spacer(modifier = Modifier.height(4.dp)) }
-
         items(stats) { stat ->
             val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
             StatCard(
@@ -250,7 +288,6 @@ private fun OpponentTab(
                 detail = "${stat.wins}勝 ${stat.loses}敗 / ${stat.total}試合"
             )
         }
-
         item { Spacer(modifier = Modifier.height(8.dp)) }
     }
 }
@@ -273,7 +310,6 @@ private fun MonthlyTab(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item { Spacer(modifier = Modifier.height(4.dp)) }
-
         items(stats) { stat ->
             val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
             StatCard(
@@ -282,7 +318,140 @@ private fun MonthlyTab(
                 detail = "${stat.wins}勝 ${stat.loses}敗 / ${stat.total}試合"
             )
         }
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
 
+// ========== 天気別タブ ==========
+
+@Composable
+private fun WeatherTab(stats: List<WeatherStat>) {
+    if (stats.isEmpty()) {
+        EmptyMessage()
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+        items(stats) { stat ->
+            val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
+            StatCard(
+                title = "${weatherEmoji(stat.weather)} ${stat.weather}",
+                rate = rate,
+                detail = "${stat.wins}勝 ${stat.loses}敗 / ${stat.total}試合"
+            )
+        }
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+// ========== 支出タブ ==========
+
+@Composable
+private fun SpendingTab(
+    totalSpending: Int,
+    stadiumSpending: List<StadiumSpending>,
+    monthlySpending: List<MonthlySpending>
+) {
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        // 合計支出サマリー
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("チケット代 合計", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "%,d円".format(totalSpending),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF2196F3)
+                    )
+                }
+            }
+        }
+
+        // 球場別支出
+        if (stadiumSpending.isNotEmpty()) {
+            item {
+                Text("球場別", style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+            items(stadiumSpending) { stat ->
+                SpendingCard(
+                    title = stat.stadium,
+                    total = stat.totalSpending,
+                    count = stat.visitCount,
+                    avg = stat.avgPrice,
+                    maxTotal = stadiumSpending.maxOf { it.totalSpending }
+                )
+            }
+        }
+
+        // 月別支出
+        if (monthlySpending.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("月別", style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+            items(monthlySpending) { stat ->
+                SpendingCard(
+                    title = stat.month,
+                    total = stat.totalSpending,
+                    count = stat.visitCount,
+                    avg = stat.avgPrice,
+                    maxTotal = monthlySpending.maxOf { it.totalSpending }
+                )
+            }
+        }
+
+        if (stadiumSpending.isEmpty() && monthlySpending.isEmpty() && totalSpending == 0) {
+            item { EmptyMessage() }
+        }
+
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+// ========== 同行者別タブ ==========
+
+@Composable
+private fun CompanionTab(stats: List<CompanionStat>) {
+    if (stats.isEmpty()) {
+        EmptyMessage()
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+        items(stats) { stat ->
+            val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
+            StatCard(
+                title = stat.name,
+                rate = rate,
+                detail = "${stat.wins}勝 ${stat.loses}敗 / ${stat.total}試合"
+            )
+        }
         item { Spacer(modifier = Modifier.height(8.dp)) }
     }
 }
@@ -325,6 +494,49 @@ private fun StatCard(title: String, rate: Float, detail: String) {
                 progress = { if (rate > 0) rate / 100f else 0f },
                 modifier = Modifier.fillMaxWidth().height(6.dp),
             )
+        }
+    }
+}
+
+@Composable
+private fun SpendingCard(title: String, total: Int, count: Int, avg: Int, maxTotal: Int) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "%,d円".format(total),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF2196F3)
+                )
+            }
+            Text(
+                text = "${count}回 / 平均 %,d円".format(avg),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            if (maxTotal > 0) {
+                LinearProgressIndicator(
+                    progress = { total.toFloat() / maxTotal },
+                    modifier = Modifier.fillMaxWidth().height(6.dp),
+                    color = Color(0xFF2196F3)
+                )
+            }
         }
     }
 }
