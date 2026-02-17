@@ -1,5 +1,16 @@
 export type ReminderInterval = 'daily' | 'weekly' | 'monthly'
 
+export interface SavingsEntry {
+  date: string
+  amount: number
+}
+
+export interface Memo {
+  id: string
+  date: string
+  text: string
+}
+
 export interface Goal {
   id: string
   name: string
@@ -9,6 +20,8 @@ export interface Goal {
   createdAt: string
   reminderEnabled: boolean
   reminderInterval: ReminderInterval
+  history: SavingsEntry[]
+  memos: Memo[]
 }
 
 export type DateCounterType = 'countup' | 'countdown'

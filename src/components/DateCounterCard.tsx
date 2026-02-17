@@ -45,13 +45,13 @@ export default function DateCounterCard({ counter, onEdit, onDelete, onToggleRem
   const diff = diffDays(counter.date)
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 transition-all hover:shadow-md">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <span className="text-3xl">{counter.emoji}</span>
           <div>
-            <h3 className="font-bold text-gray-800 text-lg leading-tight">{counter.name}</h3>
-            <p className="text-sm text-gray-400 mt-0.5 flex items-center gap-1">
+            <h3 className="font-bold text-gray-800 dark:text-gray-100 text-lg leading-tight">{counter.name}</h3>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
               {isCountup ? <CalendarDays size={13} /> : <CalendarClock size={13} />}
               {counter.date.replace(/-/g, '/')}
               {isCountup ? ' から' : ' まで'}
@@ -63,8 +63,8 @@ export default function DateCounterCard({ counter, onEdit, onDelete, onToggleRem
             onClick={() => onToggleReminder(counter.id)}
             className={`p-2 rounded-lg transition-colors ${
               counter.reminderEnabled
-                ? 'text-amber-500 hover:bg-amber-50'
-                : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50'
+                ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30'
+                : 'text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30'
             }`}
             aria-label={counter.reminderEnabled ? 'リマインダーOFF' : 'リマインダーON'}
             title={counter.reminderEnabled ? `リマインダーON（${INTERVAL_LABEL[counter.reminderInterval]}）` : 'リマインダーOFF'}
@@ -73,14 +73,14 @@ export default function DateCounterCard({ counter, onEdit, onDelete, onToggleRem
           </button>
           <button
             onClick={() => onEdit(counter)}
-            className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
             aria-label="編集"
           >
             <Pencil size={16} />
           </button>
           <button
             onClick={() => onDelete(counter.id)}
-            className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
             aria-label="削除"
           >
             <Trash2 size={16} />
@@ -101,7 +101,7 @@ function CountupDisplay({ dateStr }: { dateStr: string }) {
   const { days, months, extraDays } = formatElapsed(dateStr)
 
   return (
-    <div className="bg-gradient-to-r from-pink-50 to-rose-50 rounded-xl p-4">
+    <div className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-xl p-4">
       <div className="text-center">
         <p className="text-3xl font-bold text-rose-500">
           {days}<span className="text-lg ml-1">日目</span>
@@ -121,20 +121,18 @@ function CountdownDisplay({ diff }: { diff: number }) {
   return (
     <div className={`rounded-xl p-4 ${
       isPast
-        ? 'bg-gradient-to-r from-gray-50 to-slate-50'
-        : 'bg-gradient-to-r from-sky-50 to-indigo-50'
+        ? 'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-700/50 dark:to-slate-700/50'
+        : 'bg-gradient-to-r from-sky-50 to-indigo-50 dark:from-sky-900/20 dark:to-indigo-900/20'
     }`}>
       <div className="text-center">
         {isPast ? (
-          <>
-            <p className="text-3xl font-bold text-gray-400">
-              {absDiff}<span className="text-lg ml-1">日前に終了</span>
-            </p>
-          </>
+          <p className="text-3xl font-bold text-gray-400">
+            {absDiff}<span className="text-lg ml-1">日前に終了</span>
+          </p>
         ) : diff === 0 ? (
           <p className="text-3xl font-bold text-amber-500">今日です!</p>
         ) : (
-          <p className="text-3xl font-bold text-indigo-500">
+          <p className="text-3xl font-bold text-indigo-500 dark:text-indigo-400">
             あと <span className="text-4xl">{absDiff}</span><span className="text-lg ml-1">日</span>
           </p>
         )}

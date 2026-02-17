@@ -62,31 +62,30 @@ export default function DateCounterModal({ open, onClose, onSave, initial }: Dat
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 pb-8 sm:pb-6 animate-slide-up max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-white dark:bg-gray-800 w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl p-6 pb-8 sm:pb-6 animate-slide-up max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold text-gray-800">
+          <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">
             {initial ? '日にちカウンターを編集' : '日にちカウンターを追加'}
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <X size={20} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Type selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">タイプ</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">タイプ</label>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => setType('countup')}
                 className={`flex-1 py-2.5 text-sm rounded-xl font-medium transition-all ${
                   type === 'countup'
-                    ? 'bg-rose-100 text-rose-600 ring-2 ring-rose-400'
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    ? 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400 ring-2 ring-rose-400'
+                    : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
                 }`}
               >
                 経過日数
@@ -96,8 +95,8 @@ export default function DateCounterModal({ open, onClose, onSave, initial }: Dat
                 onClick={() => setType('countdown')}
                 className={`flex-1 py-2.5 text-sm rounded-xl font-medium transition-all ${
                   type === 'countdown'
-                    ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-400'
-                    : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                    ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 ring-2 ring-indigo-400'
+                    : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
                 }`}
               >
                 カウントダウン
@@ -105,9 +104,8 @@ export default function DateCounterModal({ open, onClose, onSave, initial }: Dat
             </div>
           </div>
 
-          {/* Emoji picker */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">アイコン</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">アイコン</label>
             <div className="flex flex-wrap gap-2">
               {EMOJI_OPTIONS.map((e) => (
                 <button
@@ -116,8 +114,8 @@ export default function DateCounterModal({ open, onClose, onSave, initial }: Dat
                   onClick={() => setEmoji(e)}
                   className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${
                     emoji === e
-                      ? 'bg-indigo-100 ring-2 ring-indigo-400 scale-110'
-                      : 'bg-gray-50 hover:bg-gray-100'
+                      ? 'bg-indigo-100 dark:bg-indigo-900/40 ring-2 ring-indigo-400 scale-110'
+                      : 'bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
                   }`}
                 >
                   {e}
@@ -126,37 +124,34 @@ export default function DateCounterModal({ open, onClose, onSave, initial }: Dat
             </div>
           </div>
 
-          {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">名前</label>
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">名前</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={type === 'countup' ? '例: ふたりの記念日' : '例: 旅行まで'}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-gray-800 placeholder:text-gray-300"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 outline-none transition-all placeholder:text-gray-300 dark:placeholder:text-gray-500"
               required
             />
           </div>
 
-          {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
+            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
               {type === 'countup' ? '開始日' : '目標日'}
             </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-gray-800"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/50 outline-none transition-all"
               required
             />
           </div>
 
-          {/* Reminder */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-400">
                 <Bell size={16} />
                 リマインダー
               </label>
@@ -164,7 +159,7 @@ export default function DateCounterModal({ open, onClose, onSave, initial }: Dat
                 type="button"
                 onClick={() => setReminderEnabled(!reminderEnabled)}
                 className={`relative w-11 h-6 rounded-full transition-colors ${
-                  reminderEnabled ? 'bg-indigo-500' : 'bg-gray-300'
+                  reminderEnabled ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               >
                 <span
@@ -183,8 +178,8 @@ export default function DateCounterModal({ open, onClose, onSave, initial }: Dat
                     onClick={() => setReminderInterval(opt.value)}
                     className={`flex-1 py-2 text-sm rounded-xl font-medium transition-all ${
                       reminderInterval === opt.value
-                        ? 'bg-indigo-100 text-indigo-600 ring-2 ring-indigo-400'
-                        : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                        ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 ring-2 ring-indigo-400'
+                        : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }`}
                   >
                     {opt.label}
@@ -196,7 +191,7 @@ export default function DateCounterModal({ open, onClose, onSave, initial }: Dat
 
           <button
             type="submit"
-            className="w-full py-3 bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-bold rounded-xl hover:from-indigo-600 hover:to-violet-600 transition-all shadow-lg shadow-indigo-200 active:scale-[0.98]"
+            className="w-full py-3 bg-gradient-to-r from-indigo-500 to-violet-500 text-white font-bold rounded-xl hover:from-indigo-600 hover:to-violet-600 transition-all shadow-lg shadow-indigo-200 dark:shadow-indigo-900/50 active:scale-[0.98]"
           >
             {initial ? '更新する' : 'カウンターを追加!'}
           </button>
