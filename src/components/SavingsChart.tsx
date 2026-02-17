@@ -20,13 +20,16 @@ export default function SavingsChart({ history, targetAmount }: SavingsChartProp
 
   const sorted = [...history].sort((a, b) => a.date.localeCompare(b.date))
   const maxAmount = Math.max(targetAmount, ...sorted.map((h) => h.amount))
+  const maxDeposit = Math.max(...sorted.map((h) => Math.abs(h.deposit ?? 0)), 1)
 
   const W = 280
-  const H = 120
+  const H = 150
   const padX = 8
   const padY = 12
+  const chartH = 80
+  const barAreaH = 35
+  const barTop = padY + chartH + 8
   const chartW = W - padX * 2
-  const chartH = H - padY * 2
 
   const points = sorted.map((entry, i) => {
     const x = padX + (i / (sorted.length - 1)) * chartW
@@ -36,8 +39,10 @@ export default function SavingsChart({ history, targetAmount }: SavingsChartProp
 
   const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
   const areaPath = `${linePath} L${points[points.length - 1].x},${padY + chartH} L${points[0].x},${padY + chartH} Z`
-
   const targetY = padY + chartH - (targetAmount / maxAmount) * chartH
+
+  // Bar width
+  const barWidth = Math.min(12, (chartW / sorted.length) * 0.6)
 
   return (
     <div className="mt-3">
@@ -79,6 +84,41 @@ export default function SavingsChart({ history, targetAmount }: SavingsChartProp
             )}
           </g>
         ))}
+
+        {/* Deposit bars */}
+        <line
+          x1={padX} y1={barTop} x2={W - padX} y2={barTop}
+          stroke="currentColor" className="text-gray-200 dark:text-gray-700" strokeWidth="0.5"
+        />
+        {points.map((p, i) => {
+          const dep = sorted[i].deposit ?? 0
+          if (dep === 0) return null
+          const isPositive = dep > 0
+          const barH = (Math.abs(dep) / maxDeposit) * barAreaH
+          return (
+            <g key={`bar-${i}`}>
+              <rect
+                x={p.x - barWidth / 2}
+                y={isPositive ? barTop - barH : barTop}
+                width={barWidth}
+                height={barH}
+                rx={2}
+                fill={isPositive ? '#10b981' : '#f43f5e'}
+                opacity={0.7}
+              />
+              {(i === points.length - 1 || barH > barAreaH * 0.3) && (
+                <text
+                  x={p.x}
+                  y={isPositive ? barTop - barH - 3 : barTop + barH + 8}
+                  textAnchor="middle"
+                  className={`text-[6px] ${isPositive ? 'fill-emerald-500' : 'fill-rose-500'}`}
+                >
+                  {isPositive ? '+' : ''}{formatYen(dep)}
+                </text>
+              )}
+            </g>
+          )
+        })}
 
         {/* Date labels */}
         <text x={padX} y={H - 1} className="fill-gray-400 text-[7px]">

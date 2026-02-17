@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Pencil, Trash2, TrendingUp, Bell, BellOff, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pencil, Trash2, TrendingUp, Bell, BellOff, ChevronDown, ChevronUp, Target } from 'lucide-react'
 import type { Goal } from '../types/goal'
 import SavingsChart from './SavingsChart'
 import MemoSection from './MemoSection'
+import { getProjectedDate } from './StatsPanel'
 
 function formatYen(amount: number) {
   return amount.toLocaleString('ja-JP')
@@ -44,6 +45,7 @@ export default function GoalCard({ goal, onEdit, onDelete, onToggleReminder, onA
     : 0
 
   const isComplete = percent >= 100
+  const projectedDate = isComplete ? null : getProjectedDate(goal)
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5 transition-all hover:shadow-md">
@@ -55,6 +57,12 @@ export default function GoalCard({ goal, onEdit, onDelete, onToggleReminder, onA
             <p className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
               目標: ¥{formatYen(goal.targetAmount)}
             </p>
+            {projectedDate && (
+              <p className="text-xs text-indigo-400 dark:text-indigo-300 mt-0.5 flex items-center gap-1">
+                <Target size={11} />
+                {projectedDate} 頃達成
+              </p>
+            )}
           </div>
         </div>
         <div className="flex gap-1">

@@ -9,6 +9,7 @@ import GoalModal from './components/GoalModal'
 import DateCounterCard from './components/DateCounterCard'
 import DateCounterModal from './components/DateCounterModal'
 import Confetti from './components/Confetti'
+import StatsPanel from './components/StatsPanel'
 import type { Goal, DateCounter, ReminderInterval } from './types/goal'
 
 function formatYen(amount: number) {
@@ -188,6 +189,9 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {/* Stats Section */}
+        {goals.length > 0 && <StatsPanel goals={goals} />}
 
         {/* Goals Section */}
         {goals.length === 0 && counters.length === 0 ? (

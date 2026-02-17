@@ -3,6 +3,7 @@ export type ReminderInterval = 'daily' | 'weekly' | 'monthly'
 export interface SavingsEntry {
   date: string
   amount: number
+  deposit: number
 }
 
 export interface Memo {

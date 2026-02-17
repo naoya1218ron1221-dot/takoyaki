@@ -7,10 +7,12 @@ function loadGoals(): Goal[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const parsed = raw ? JSON.parse(raw) : []
-    // Migrate old data that may lack history/memos
     return parsed.map((g: Goal) => ({
       ...g,
-      history: g.history ?? [],
+      history: (g.history ?? []).map((h) => ({
+        ...h,
+        deposit: h.deposit ?? 0,
+      })),
       memos: g.memos ?? [],
     }))
   } catch {
@@ -38,7 +40,7 @@ export function useGoals() {
         id: crypto.randomUUID(),
         createdAt: now,
         history: goal.currentAmount > 0
-          ? [{ date: now.slice(0, 10), amount: goal.currentAmount }]
+          ? [{ date: now.slice(0, 10), amount: goal.currentAmount, deposit: goal.currentAmount }]
           : [],
         memos: [],
       },
@@ -50,15 +52,22 @@ export function useGoals() {
       prev.map((g) => {
         if (g.id !== id) return g
         const updated = { ...g, ...updates }
-        // Record history when currentAmount changes
+
         if (updates.currentAmount !== undefined && updates.currentAmount !== g.currentAmount) {
           const today = new Date().toISOString().slice(0, 10)
           const history = [...(updated.history ?? [])]
-          const todayEntry = history.findIndex((h) => h.date === today)
-          if (todayEntry >= 0) {
-            history[todayEntry] = { date: today, amount: updates.currentAmount }
+          const deposit = updates.currentAmount - g.currentAmount
+
+          const todayIdx = history.findIndex((h) => h.date === today)
+          if (todayIdx >= 0) {
+            // Accumulate deposits for the same day
+            history[todayIdx] = {
+              date: today,
+              amount: updates.currentAmount,
+              deposit: history[todayIdx].deposit + deposit,
+            }
           } else {
-            history.push({ date: today, amount: updates.currentAmount })
+            history.push({ date: today, amount: updates.currentAmount, deposit })
           }
           updated.history = history
         }
