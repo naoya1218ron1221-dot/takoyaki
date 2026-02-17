@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import com.example.ballparkdiary.data.dao.GameDao
 import com.example.ballparkdiary.data.entity.GameRecord
 
-@Database(entities = [GameRecord::class], version = 1, exportSchema = false)
+@Database(entities = [GameRecord::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun gameDao(): GameDao
@@ -22,7 +22,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "ballpark_diary_db"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

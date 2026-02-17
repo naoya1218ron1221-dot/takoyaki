@@ -8,24 +8,33 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ScrollableTabRow
+import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ballparkdiary.ui.viewmodel.GameViewModel
+import com.example.ballparkdiary.ui.viewmodel.StreakInfo
+
+private val tabs = listOf("総合", "球場別", "対戦相手別", "月別")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,145 +44,320 @@ fun StatsScreen(viewModel: GameViewModel) {
     val loseCount by viewModel.loseCount.collectAsStateWithLifecycle()
     val drawCount by viewModel.drawCount.collectAsStateWithLifecycle()
     val stadiumStats by viewModel.stadiumStats.collectAsStateWithLifecycle()
+    val opponentStats by viewModel.opponentStats.collectAsStateWithLifecycle()
+    val monthlyStats by viewModel.monthlyStats.collectAsStateWithLifecycle()
+    val streakInfo by viewModel.streakInfo.collectAsStateWithLifecycle()
 
-    val winRate = if (totalGames > 0) winCount.toFloat() / totalGames * 100 else 0f
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(title = { Text("データ分析") })
 
-        LazyColumn(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // トータル戦績
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "トータル戦績",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // 勝率の大きな表示
-                        Text(
-                            text = "現地勝率",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "%.1f%%".format(winRate),
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        if (totalGames > 0) {
-                            LinearProgressIndicator(
-                                progress = { winRate / 100f },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp),
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // 勝敗の内訳
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            StatItem(label = "試合", value = "$totalGames")
-                            StatItem(label = "勝ち", value = "$winCount")
-                            StatItem(label = "負け", value = "$loseCount")
-                            StatItem(label = "引分", value = "$drawCount")
-                        }
-                    }
-                }
-            }
-
-            // 球場別勝率
-            item {
-                Text(
-                    text = "球場別勝率",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+        ScrollableTabRow(selectedTabIndex = selectedTab) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(title) }
                 )
             }
+        }
 
-            if (stadiumStats.isEmpty()) {
-                item {
+        when (selectedTab) {
+            0 -> OverallTab(totalGames, winCount, loseCount, drawCount, streakInfo)
+            1 -> StadiumTab(stadiumStats)
+            2 -> OpponentTab(opponentStats)
+            3 -> MonthlyTab(monthlyStats)
+        }
+    }
+}
+
+// ========== 総合タブ ==========
+
+@Composable
+private fun OverallTab(
+    totalGames: Int,
+    winCount: Int,
+    loseCount: Int,
+    drawCount: Int,
+    streakInfo: StreakInfo
+) {
+    val winRate = if (totalGames > 0) winCount.toFloat() / totalGames * 100 else 0f
+
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        // 勝率カード
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("現地勝率", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "データがありません",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = "%.1f%%".format(winRate),
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    if (totalGames > 0) {
+                        LinearProgressIndicator(
+                            progress = { winRate / 100f },
+                            modifier = Modifier.fillMaxWidth().height(10.dp),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        StatItem("試合", "$totalGames", MaterialTheme.colorScheme.onSurface)
+                        StatItem("勝ち", "$winCount", Color(0xFF4CAF50))
+                        StatItem("負け", "$loseCount", Color(0xFFF44336))
+                        StatItem("引分", "$drawCount", Color(0xFFFF9800))
+                    }
                 }
             }
+        }
 
-            items(stadiumStats) { stat ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+        // 連勝・連敗カード
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text("ストリーク", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 現在のストリーク
+                    if (streakInfo.currentType.isNotEmpty()) {
+                        val (label, color) = when (streakInfo.currentType) {
+                            "WIN" -> "連勝中" to Color(0xFF4CAF50)
+                            else -> "連敗中" to Color(0xFFF44336)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("現在: ", style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                text = stat.stadium,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
-                            Text(
-                                text = "%.1f%% (%d勝 / %d試合)".format(rate, stat.wins, stat.total),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                text = "${streakInfo.currentCount}${label}",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = color
                             )
                         }
+                    }
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        if (stat.total > 0) {
-                            LinearProgressIndicator(
-                                progress = { stat.wins.toFloat() / stat.total },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(6.dp),
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "${streakInfo.maxWinStreak}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF4CAF50)
                             )
+                            Text("最大連勝", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                "${streakInfo.maxLoseStreak}",
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF44336)
+                            )
+                            Text("最大連敗", style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
             }
+        }
 
-            item { Spacer(modifier = Modifier.height(8.dp)) }
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+// ========== 球場別タブ ==========
+
+@Composable
+private fun StadiumTab(
+    stats: List<com.example.ballparkdiary.data.dao.StadiumStat>
+) {
+    if (stats.isEmpty()) {
+        EmptyMessage()
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        items(stats) { stat ->
+            val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
+            StatCard(
+                title = stat.stadium,
+                rate = rate,
+                detail = "${stat.wins}勝 ${stat.loses}敗 / ${stat.total}試合"
+            )
+        }
+
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+// ========== 対戦相手別タブ ==========
+
+@Composable
+private fun OpponentTab(
+    stats: List<com.example.ballparkdiary.data.dao.OpponentStat>
+) {
+    if (stats.isEmpty()) {
+        EmptyMessage()
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        items(stats) { stat ->
+            val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
+            StatCard(
+                title = stat.opponent,
+                rate = rate,
+                detail = "${stat.wins}勝 ${stat.loses}敗 / ${stat.total}試合"
+            )
+        }
+
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+// ========== 月別タブ ==========
+
+@Composable
+private fun MonthlyTab(
+    stats: List<com.example.ballparkdiary.data.dao.MonthlyStat>
+) {
+    if (stats.isEmpty()) {
+        EmptyMessage()
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item { Spacer(modifier = Modifier.height(4.dp)) }
+
+        items(stats) { stat ->
+            val rate = if (stat.total > 0) stat.wins.toFloat() / stat.total * 100 else 0f
+            StatCard(
+                title = stat.month,
+                rate = rate,
+                detail = "${stat.wins}勝 ${stat.loses}敗 / ${stat.total}試合"
+            )
+        }
+
+        item { Spacer(modifier = Modifier.height(8.dp)) }
+    }
+}
+
+// ========== 共通コンポーネント ==========
+
+@Composable
+private fun StatCard(title: String, rate: Float, detail: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "%.1f%%".format(rate),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = { if (rate > 0) rate / 100f else 0f },
+                modifier = Modifier.fillMaxWidth().height(6.dp),
+            )
         }
     }
 }
 
 @Composable
-private fun StatItem(label: String, value: String) {
+private fun StatItem(label: String, value: String, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
             text = value,
             style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            color = color
         )
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun EmptyMessage() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "データがありません",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

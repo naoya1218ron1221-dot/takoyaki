@@ -11,15 +11,19 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.ballparkdiary.ui.screen.AddGameScreen
 import com.example.ballparkdiary.ui.screen.HistoryScreen
 import com.example.ballparkdiary.ui.screen.StatsScreen
@@ -67,12 +71,22 @@ fun AppNavigation(viewModel: GameViewModel) {
             startDestination = Screen.History.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            // 戦績一覧
             composable(Screen.History.route) {
-                HistoryScreen(viewModel = viewModel)
+                HistoryScreen(
+                    viewModel = viewModel,
+                    onEditRecord = { recordId ->
+                        viewModel.loadRecordForEdit(recordId)
+                        navController.navigate("edit_game/$recordId")
+                    }
+                )
             }
+
+            // 新規登録
             composable(Screen.AddGame.route) {
                 AddGameScreen(
                     viewModel = viewModel,
+                    editRecord = null,
                     onSaved = {
                         navController.navigate(Screen.History.route) {
                             popUpTo(navController.graph.findStartDestination().id) {
@@ -83,6 +97,27 @@ fun AppNavigation(viewModel: GameViewModel) {
                     }
                 )
             }
+
+            // 編集画面
+            composable(
+                route = "edit_game/{recordId}",
+                arguments = listOf(navArgument("recordId") { type = NavType.LongType })
+            ) {
+                val editTarget by viewModel.editTarget.collectAsStateWithLifecycle()
+
+                editTarget?.let { record ->
+                    AddGameScreen(
+                        viewModel = viewModel,
+                        editRecord = record,
+                        onSaved = {
+                            viewModel.clearEditTarget()
+                            navController.popBackStack()
+                        }
+                    )
+                }
+            }
+
+            // データ分析
             composable(Screen.Stats.route) {
                 StatsScreen(viewModel = viewModel)
             }

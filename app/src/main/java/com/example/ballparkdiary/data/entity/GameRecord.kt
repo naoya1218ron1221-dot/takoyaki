@@ -7,9 +7,12 @@ import androidx.room.PrimaryKey
 data class GameRecord(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-    val date: String,          // "yyyy-MM-dd"
+    val date: String,              // "yyyy-MM-dd"
     val stadium: String,
     val opponent: String,
-    val result: String,        // "WIN" / "LOSE" / "DRAW" / "CANCELLED"
-    val memo: String = ""
+    val result: String,            // "WIN" / "LOSE" / "DRAW" / "CANCELLED"
+    val myScore: Int? = null,
+    val opponentScore: Int? = null,
+    val memo: String = "",
+    val createdAt: Long = System.currentTimeMillis()
 )
