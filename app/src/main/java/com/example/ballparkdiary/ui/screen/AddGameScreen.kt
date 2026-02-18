@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
@@ -82,7 +83,8 @@ private val weatherOptions = listOf("晴れ", "曇り", "雨", "ドーム", "そ
 fun AddGameScreen(
     viewModel: GameViewModel,
     editRecord: GameRecord? = null,
-    onSaved: () -> Unit
+    onSaved: () -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
     val isEditMode = editRecord != null
     val today = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -137,7 +139,19 @@ fun AddGameScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
     ) {
-        TopAppBar(title = { Text(if (isEditMode) "試合を編集" else "試合登録") })
+        TopAppBar(
+            title = { Text(if (isEditMode) "試合を編集" else "試合登録") },
+            navigationIcon = {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "戻る"
+                        )
+                    }
+                }
+            }
+        )
 
         Column(
             modifier = Modifier

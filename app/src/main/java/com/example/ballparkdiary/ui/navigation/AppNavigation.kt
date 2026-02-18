@@ -9,10 +9,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +31,7 @@ import com.example.ballparkdiary.ui.screen.AddGameScreen
 import com.example.ballparkdiary.ui.screen.HistoryScreen
 import com.example.ballparkdiary.ui.screen.StatsScreen
 import com.example.ballparkdiary.ui.viewmodel.GameViewModel
+import com.example.ballparkdiary.ui.viewmodel.UiEvent
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     data object History : Screen("history", "戦績一覧", Icons.Default.Home)
@@ -40,8 +44,19 @@ private val bottomNavItems = listOf(Screen.History, Screen.AddGame, Screen.Stats
 @Composable
 fun AppNavigation(viewModel: GameViewModel) {
     val navController = rememberNavController()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Snackbar イベント監視
+    LaunchedEffect(Unit) {
+        viewModel.uiEvent.collect { event ->
+            when (event) {
+                is UiEvent.ShowSnackbar -> snackbarHostState.showSnackbar(event.message)
+            }
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         bottomBar = {
             NavigationBar {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -110,6 +125,10 @@ fun AppNavigation(viewModel: GameViewModel) {
                         viewModel = viewModel,
                         editRecord = record,
                         onSaved = {
+                            viewModel.clearEditTarget()
+                            navController.popBackStack()
+                        },
+                        onBack = {
                             viewModel.clearEditTarget()
                             navController.popBackStack()
                         }
