@@ -1,254 +1,194 @@
-import { useState, useCallback } from 'react'
-import { Plus, Sparkles, CalendarHeart, Moon, Sun } from 'lucide-react'
-import { useGoals } from './hooks/useGoals'
-import { useDateCounters } from './hooks/useDateCounters'
-import { useReminder } from './hooks/useReminder'
-import { useTheme } from './hooks/useTheme'
-import GoalCard from './components/GoalCard'
-import GoalModal from './components/GoalModal'
-import DateCounterCard from './components/DateCounterCard'
-import DateCounterModal from './components/DateCounterModal'
-import Confetti from './components/Confetti'
-import StatsPanel from './components/StatsPanel'
-import type { Goal, DateCounter, ReminderInterval } from './types/goal'
-
-function formatYen(amount: number) {
-  return amount.toLocaleString('ja-JP')
-}
+import { useState, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { clsx } from 'clsx'
+import { useStockEvents } from './hooks/useStockEvents'
+import { SwipePages } from './components/SwipePages'
+import { EventModal } from './components/EventModal'
+import type { StockItem } from './types'
 
 export default function App() {
-  const { goals, addGoal, updateGoal, deleteGoal, addMemo, deleteMemo } = useGoals()
-  const { counters, addCounter, updateCounter, deleteCounter } = useDateCounters()
-  const { permission, requestPermission } = useReminder(goals, counters)
-  const { theme, toggleTheme } = useTheme()
-
+  const { data, updatePageName, addItem, updateItem, deleteItem } = useStockEvents()
+  const [currentPage, setCurrentPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
-  const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
-  const [counterModalOpen, setCounterModalOpen] = useState(false)
-  const [editingCounter, setEditingCounter] = useState<DateCounter | null>(null)
-  const [showConfetti, setShowConfetti] = useState(false)
+  const [editingItem, setEditingItem] = useState<(StockItem & { _pageId: number }) | null>(null)
+  const [editingPageName, setEditingPageName] = useState(false)
+  const [pageNameInput, setPageNameInput] = useState('')
+  const pageNameRef = useRef<HTMLInputElement>(null)
 
-  const totalTarget = goals.reduce((s, g) => s + g.targetAmount, 0)
-  const totalCurrent = goals.reduce((s, g) => s + g.currentAmount, 0)
-  const overallPercent = totalTarget > 0 ? Math.round((totalCurrent / totalTarget) * 100) : 0
+  const page = data[currentPage]
 
-  // Goal handlers
-  const handleEdit = (goal: Goal) => {
-    setEditingGoal(goal)
+  function handleHeaderTap() {
+    setPageNameInput(page.name)
+    setEditingPageName(true)
+    setTimeout(() => pageNameRef.current?.select(), 50)
+  }
+
+  function handlePageNameSave() {
+    const trimmed = pageNameInput.trim()
+    if (trimmed) updatePageName(page.id, trimmed)
+    setEditingPageName(false)
+  }
+
+  function handleFabPress() {
+    setEditingItem(null)
     setModalOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('この野望を削除しますか?')) {
-      deleteGoal(id)
+  function handleEdit(pageId: number, item: StockItem) {
+    setEditingItem({ ...item, _pageId: pageId })
+    setModalOpen(true)
+  }
+
+  function handleDelete(pageId: number, itemId: string) {
+    if (window.confirm('この銘柄を削除しますか？')) {
+      deleteItem(pageId, itemId)
     }
   }
 
-  const handleSave = (data: { name: string; emoji: string; targetAmount: number; currentAmount: number; reminderEnabled: boolean; reminderInterval: ReminderInterval }) => {
-    if (editingGoal) {
-      const prevAmount = editingGoal.currentAmount
-      const prevPercent = editingGoal.targetAmount > 0 ? (prevAmount / editingGoal.targetAmount) * 100 : 0
-      const newPercent = data.targetAmount > 0 ? (data.currentAmount / data.targetAmount) * 100 : 0
-
-      updateGoal(editingGoal.id, data)
-
-      // Trigger confetti when goal just reached 100%
-      if (prevPercent < 100 && newPercent >= 100) {
-        setShowConfetti(true)
-      }
+  function handleSave(item: Omit<StockItem, 'id'> & { id?: string }) {
+    if (item.id && editingItem) {
+      updateItem(editingItem._pageId, { ...item, id: item.id } as StockItem)
     } else {
-      addGoal(data)
-      // Confetti if adding a goal that's already complete
-      if (data.targetAmount > 0 && data.currentAmount >= data.targetAmount) {
-        setShowConfetti(true)
-      }
-    }
-    setEditingGoal(null)
-  }
-
-  const handleToggleReminder = async (id: string) => {
-    const goal = goals.find((g) => g.id === id)
-    if (!goal) return
-
-    if (!goal.reminderEnabled && permission !== 'granted') {
-      const result = await requestPermission()
-      if (result !== 'granted') return
-    }
-
-    updateGoal(id, { reminderEnabled: !goal.reminderEnabled })
-  }
-
-  const handleCloseModal = () => {
-    setModalOpen(false)
-    setEditingGoal(null)
-  }
-
-  // Date counter handlers
-  const handleEditCounter = (counter: DateCounter) => {
-    setEditingCounter(counter)
-    setCounterModalOpen(true)
-  }
-
-  const handleDeleteCounter = (id: string) => {
-    if (window.confirm('このカウンターを削除しますか?')) {
-      deleteCounter(id)
+      addItem(currentPage, item as Omit<StockItem, 'id'>)
     }
   }
-
-  const handleSaveCounter = (data: Omit<DateCounter, 'id' | 'createdAt'>) => {
-    if (editingCounter) {
-      updateCounter(editingCounter.id, data)
-    } else {
-      addCounter(data)
-    }
-    setEditingCounter(null)
-  }
-
-  const handleToggleCounterReminder = async (id: string) => {
-    const counter = counters.find((c) => c.id === id)
-    if (!counter) return
-
-    if (!counter.reminderEnabled && permission !== 'granted') {
-      const result = await requestPermission()
-      if (result !== 'granted') return
-    }
-
-    updateCounter(id, { reminderEnabled: !counter.reminderEnabled })
-  }
-
-  const handleCloseCounterModal = () => {
-    setCounterModalOpen(false)
-    setEditingCounter(null)
-  }
-
-  const handleConfettiDone = useCallback(() => {
-    setShowConfetti(false)
-  }, [])
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 dark:from-gray-900 dark:to-gray-950 transition-colors">
-      {showConfetti && <Confetti onDone={handleConfettiDone} />}
-
+    <div className="fixed inset-0 bg-[#0f172a] flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 dark:from-indigo-600 dark:via-violet-600 dark:to-purple-600 text-white px-5 pt-12 pb-8 rounded-b-[2rem] shadow-lg shadow-indigo-200/50 dark:shadow-indigo-900/30">
-        <div className="max-w-lg mx-auto">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <Sparkles size={20} className="text-amber-300" />
-              <h1 className="text-xl font-bold tracking-tight">野望進捗トラッカー</h1>
-            </div>
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-xl hover:bg-white/15 transition-colors"
-              aria-label={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
-            >
-              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-          </div>
-          <p className="text-indigo-200 text-sm mb-5">ふたりの夢を、ひとつずつ叶えよう</p>
+      <header
+        className="shrink-0 flex items-center justify-between px-4 border-b border-slate-800"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: '12px' }}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-1.5 w-28">
+          <span className="text-lg">📊</span>
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-tight">
+            Stock<br />Deck
+          </span>
+        </div>
 
-          {goals.length > 0 && (
-            <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-indigo-100">全体の進捗</span>
-                <span className="font-bold">{overallPercent}%</span>
-              </div>
-              <div className="w-full bg-white/20 rounded-full h-3 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-300 to-yellow-200 transition-all duration-700"
-                  style={{ width: `${overallPercent}%` }}
+        {/* Page name — tappable to edit */}
+        <div className="flex-1 flex justify-center">
+          <AnimatePresence mode="wait">
+            {editingPageName ? (
+              <motion.div
+                key="input"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="flex items-center gap-1"
+              >
+                <input
+                  ref={pageNameRef}
+                  type="text"
+                  value={pageNameInput}
+                  onChange={(e) => setPageNameInput(e.target.value)}
+                  onBlur={handlePageNameSave}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handlePageNameSave()
+                    if (e.key === 'Escape') setEditingPageName(false)
+                  }}
+                  maxLength={20}
+                  className="bg-slate-800 border border-blue-500/60 rounded-lg px-2 py-1 text-sm text-white text-center focus:outline-none w-32"
+                  autoFocus
                 />
-              </div>
-              <p className="text-xs text-indigo-200 mt-2">
-                ¥{formatYen(totalCurrent)} / ¥{formatYen(totalTarget)}
-              </p>
-            </div>
-          )}
+                <button
+                  onPointerDown={(e) => { e.preventDefault(); handlePageNameSave() }}
+                  className="p-1 text-blue-400"
+                >
+                  <Check size={16} />
+                </button>
+              </motion.div>
+            ) : (
+              <motion.button
+                key="label"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={handleHeaderTap}
+                className="flex items-center gap-1 text-sm font-bold text-white px-3 py-1 rounded-lg hover:bg-slate-800 transition-colors active:bg-slate-700"
+              >
+                {page.name}
+                <span className="text-slate-600 text-xs">✎</span>
+              </motion.button>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Item count */}
+        <div className="w-28 flex justify-end">
+          <span className="text-xs text-slate-500 font-semibold">
+            {page.items.length}
+            <span className="text-slate-600">銘柄</span>
+          </span>
         </div>
       </header>
 
-      {/* Content */}
-      <main className="max-w-lg mx-auto px-5 py-6 pb-28">
-        {/* Date Counters Section */}
-        {counters.length > 0 && (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarHeart size={18} className="text-rose-400" />
-              <h2 className="text-sm font-bold text-gray-500 dark:text-gray-400">日にちカウンター</h2>
-            </div>
-            <div className="space-y-4">
-              {counters.map((counter) => (
-                <DateCounterCard
-                  key={counter.id}
-                  counter={counter}
-                  onEdit={handleEditCounter}
-                  onDelete={handleDeleteCounter}
-                  onToggleReminder={handleToggleCounterReminder}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Stats Section */}
-        {goals.length > 0 && <StatsPanel goals={goals} />}
-
-        {/* Goals Section */}
-        {goals.length === 0 && counters.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-6xl mb-4">🌟</p>
-            <h2 className="text-lg font-bold text-gray-700 dark:text-gray-200 mb-2">まだ野望がありません</h2>
-            <p className="text-gray-400 dark:text-gray-500 text-sm">
-              下のボタンから、ふたりの夢を追加しましょう!
-            </p>
-          </div>
-        ) : goals.length > 0 && (
-          <div className="space-y-4">
-            {goals.map((goal) => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onToggleReminder={handleToggleReminder}
-                onAddMemo={(goalId, text) => addMemo(goalId, text)}
-                onDeleteMemo={(goalId, memoId) => deleteMemo(goalId, memoId)}
-              />
-            ))}
-          </div>
-        )}
-      </main>
-
-      {/* FABs */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-3 items-end">
+      {/* Page navigation row */}
+      <div className="shrink-0 flex items-center justify-between px-2 py-2">
         <button
-          onClick={() => { setEditingCounter(null); setCounterModalOpen(true) }}
-          className="w-12 h-12 bg-gradient-to-r from-rose-400 to-pink-400 text-white rounded-full shadow-lg shadow-rose-200/50 dark:shadow-rose-900/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-          aria-label="日にちカウンターを追加"
+          onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+          disabled={currentPage === 0}
+          className="p-1.5 rounded-lg text-slate-500 hover:text-white disabled:opacity-20 transition-colors"
         >
-          <CalendarHeart size={22} />
+          <ChevronLeft size={18} />
         </button>
+
+        {/* Dot indicators */}
+        <div className="flex items-center gap-1.5">
+          {data.map((pg, i) => (
+            <button
+              key={i}
+              onClick={() => setCurrentPage(i)}
+              className={clsx(
+                'rounded-full transition-all duration-200',
+                i === currentPage
+                  ? 'w-4 h-2 bg-blue-400'
+                  : pg.items.length > 0
+                    ? 'w-2 h-2 bg-slate-500'
+                    : 'w-1.5 h-1.5 bg-slate-700'
+              )}
+            />
+          ))}
+        </div>
+
         <button
-          onClick={() => { setEditingGoal(null); setModalOpen(true) }}
-          className="w-14 h-14 bg-gradient-to-r from-indigo-500 to-violet-500 text-white rounded-full shadow-lg shadow-indigo-300/50 dark:shadow-indigo-900/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
-          aria-label="新しい野望を追加"
+          onClick={() => setCurrentPage((p) => Math.min(9, p + 1))}
+          disabled={currentPage === 9}
+          className="p-1.5 rounded-lg text-slate-500 hover:text-white disabled:opacity-20 transition-colors"
         >
-          <Plus size={28} />
+          <ChevronRight size={18} />
         </button>
       </div>
 
-      {/* Modals */}
-      <GoalModal
-        open={modalOpen}
-        onClose={handleCloseModal}
-        onSave={handleSave}
-        initial={editingGoal}
+      {/* Main swipe area */}
+      <SwipePages
+        pages={data}
+        currentPage={currentPage}
+        onPageChange={setCurrentPage}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
       />
-      <DateCounterModal
-        open={counterModalOpen}
-        onClose={handleCloseCounterModal}
-        onSave={handleSaveCounter}
-        initial={editingCounter}
+
+      {/* FAB */}
+      <motion.button
+        whileTap={{ scale: 0.9 }}
+        onClick={handleFabPress}
+        className="fixed right-5 w-14 h-14 rounded-full bg-blue-600 shadow-xl shadow-blue-900/50 flex items-center justify-center z-30 hover:bg-blue-500 transition-colors"
+        style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
+        aria-label="銘柄を追加"
+      >
+        <Plus size={26} className="text-white" strokeWidth={2.5} />
+      </motion.button>
+
+      {/* Modal */}
+      <EventModal
+        open={modalOpen}
+        initial={editingItem}
+        onClose={() => { setModalOpen(false); setEditingItem(null) }}
+        onSave={handleSave}
       />
     </div>
   )
