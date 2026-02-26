@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #1a56db;
+  --primary-light: #e1effe;
+  --win: #22c55e;
+  --lose: #ef4444;
+  --draw: #f59e0b;
+  --cancel: #9ca3af;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  position: relative;
+}
+
+/* スムーズスクロール */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ボトムナビ分の余白 */
+main {
+  padding-bottom: 72px;
+}
+
+/* トースト */
+.toast-enter {
+  animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ボトムシートオーバーレイ */
+.overlay {
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.sheet-content {
+  animation: sheetUp 0.3s ease-out;
+}
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
