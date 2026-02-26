@@ -9,6 +9,16 @@
   --lose: #ef4444;
   --draw: #f59e0b;
   --cancel: #9ca3af;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html {
+  overscroll-behavior-y: contain;
 }
 
 body {
@@ -20,21 +30,37 @@ body {
   margin: 0 auto;
   min-height: 100dvh;
   position: relative;
-}
-
-/* スムーズスクロール */
-* {
-  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* ネイティブ風のバウンス無効化 */
+  overscroll-behavior: none;
+  /* スタンドアロンの時のSafe Area対応 */
+  padding-bottom: var(--safe-bottom);
 }
 
 /* ボトムナビ分の余白 */
 main {
-  padding-bottom: 72px;
+  padding-bottom: calc(72px + var(--safe-bottom));
+}
+
+/* スクロールバー非表示 */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* スムーズタップ */
+.tap-active:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
 }
 
 /* トースト */
 .toast-enter {
-  animation: slideUp 0.3s ease-out;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes slideUp {
   from {
@@ -56,9 +82,72 @@ main {
   to { opacity: 1; }
 }
 .sheet-content {
-  animation: sheetUp 0.3s ease-out;
+  animation: sheetUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 @keyframes sheetUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+/* スプラッシュスクリーン */
+.splash {
+  animation: splashFade 0.5s ease-out 1s forwards;
+}
+@keyframes splashFade {
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* スケルトンローディング */
+.skeleton {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* タブ切替アニメーション */
+.tab-content {
+  animation: tabFadeIn 0.2s ease-out;
+}
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* スワイプ削除 */
+.swipe-item {
+  transition: transform 0.2s ease;
+}
+
+/* プルダウンリフレッシュ */
+.pull-indicator {
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+/* インストールバナー */
+.install-banner {
+  animation: bannerSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes bannerSlideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
