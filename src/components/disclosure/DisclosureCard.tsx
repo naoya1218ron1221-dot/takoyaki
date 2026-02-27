@@ -1,4 +1,4 @@
-import { ExternalLink, FileText, BarChart3, FileBarChart2, BookOpen } from 'lucide-react'
+import { ExternalLink, FileText, BarChart3, FileBarChart2, BookOpen, Star, Eye } from 'lucide-react'
 import type { DisclosureItem } from '../../types/disclosure'
 
 // 書類種別ごとの色 (左ボーダー + バッジ)
@@ -40,14 +40,34 @@ interface Props {
   item: DisclosureItem
   selected: boolean
   onToggleSelect: (id: string) => void
+  isFavorite?: boolean
+  onToggleFavorite?: (item: DisclosureItem) => void
+  onPreview?: (item: DisclosureItem) => void
 }
 
-export default function DisclosureCard({ item, selected, onToggleSelect }: Props) {
+export default function DisclosureCard({
+  item,
+  selected,
+  onToggleSelect,
+  isFavorite = false,
+  onToggleFavorite,
+  onPreview,
+}: Props) {
   const style = DOC_TYPE_STYLE[item.docTypeLabel] ?? DEFAULT_STYLE
 
   const handlePdfOpen = (e: React.MouseEvent) => {
     e.stopPropagation()
     window.open(item.pdfUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const handlePreview = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onPreview?.(item)
+  }
+
+  const handleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onToggleFavorite?.(item)
   }
 
   return (
@@ -84,11 +104,9 @@ export default function DisclosureCard({ item, selected, onToggleSelect }: Props
         <div className="flex-1 min-w-0">
           {/* バッジ行 */}
           <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-            {/* ソースバッジ */}
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${SOURCE_STYLE[item.source] ?? ''}`}>
               {item.source.toUpperCase()}
             </span>
-            {/* 書類種別バッジ（アイコン付き） */}
             <span className={`flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${style.badge}`}>
               {style.icon}
               {item.docTypeLabel}
@@ -109,15 +127,45 @@ export default function DisclosureCard({ item, selected, onToggleSelect }: Props
           </div>
         </div>
 
-        {/* PDF開くボタン */}
-        <button
-          onClick={handlePdfOpen}
-          className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition-all text-[11px] font-medium"
-          aria-label="PDFを開く"
-        >
-          <ExternalLink size={13} />
-          <span className="hidden sm:inline">PDF</span>
-        </button>
+        {/* アクションボタン群 */}
+        <div className="flex flex-col gap-1.5 flex-shrink-0 items-end">
+          {/* お気に入りボタン */}
+          {onToggleFavorite && (
+            <button
+              onClick={handleFavorite}
+              className={`p-1.5 rounded-lg transition-all ${
+                isFavorite
+                  ? 'text-amber-400 hover:text-amber-500 bg-amber-50 dark:bg-amber-900/20'
+                  : 'text-gray-300 dark:text-gray-600 hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'
+              }`}
+              aria-label={isFavorite ? 'お気に入りから削除' : 'お気に入りに追加'}
+            >
+              <Star size={15} className={isFavorite ? 'fill-amber-400' : ''} />
+            </button>
+          )}
+
+          <div className="flex items-center gap-1">
+            {/* プレビューボタン */}
+            {onPreview && (
+              <button
+                onClick={handlePreview}
+                className="flex items-center gap-1 px-2 py-1.5 bg-gray-50 dark:bg-gray-700 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-400 dark:text-gray-500 hover:text-purple-500 dark:hover:text-purple-400 rounded-lg transition-all text-[11px] font-medium"
+                aria-label="プレビュー"
+              >
+                <Eye size={13} />
+              </button>
+            )}
+
+            {/* PDF開くボタン */}
+            <button
+              onClick={handlePdfOpen}
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 rounded-lg transition-all text-[11px] font-medium"
+              aria-label="PDFを開く"
+            >
+              <ExternalLink size={13} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

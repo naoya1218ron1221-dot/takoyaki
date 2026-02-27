@@ -7,16 +7,19 @@ interface Props {
   onToggleSelect: (id: string) => void
   onSelectAll: () => void
   onDeselectAll: () => void
+  favoriteIds?: Set<string>
+  onToggleFavorite?: (item: DisclosureItem) => void
+  onPreview?: (item: DisclosureItem) => void
+  groupByYear?: boolean
 }
 
-function groupByYear(items: DisclosureItem[]): [string, DisclosureItem[]][] {
+function makeYearGroups(items: DisclosureItem[]): [string, DisclosureItem[]][] {
   const map = new Map<string, DisclosureItem[]>()
   for (const item of items) {
     const year = item.filedDate.slice(0, 4) || '不明'
     if (!map.has(year)) map.set(year, [])
     map.get(year)!.push(item)
   }
-  // 年度降順（最新→古い）
   return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]))
 }
 
@@ -26,6 +29,10 @@ export default function ResultsList({
   onToggleSelect,
   onSelectAll,
   onDeselectAll,
+  favoriteIds,
+  onToggleFavorite,
+  onPreview,
+  groupByYear = true,
 }: Props) {
   if (items.length === 0) {
     return (
@@ -36,7 +43,18 @@ export default function ResultsList({
   }
 
   const allSelected = items.length > 0 && items.every(i => selectedIds.has(i.id))
-  const grouped = groupByYear(items)
+
+  const renderCard = (item: DisclosureItem) => (
+    <DisclosureCard
+      key={item.id}
+      item={item}
+      selected={selectedIds.has(item.id)}
+      onToggleSelect={onToggleSelect}
+      isFavorite={favoriteIds?.has(item.secCode)}
+      onToggleFavorite={onToggleFavorite}
+      onPreview={onPreview}
+    />
+  )
 
   return (
     <div className="mt-3">
@@ -71,35 +89,28 @@ export default function ResultsList({
         )}
       </div>
 
-      {/* 年度別グループ */}
-      <div className="space-y-5">
-        {grouped.map(([year, yearItems]) => (
-          <section key={year}>
-            {/* 年度ヘッダー */}
-            <div className="flex items-center gap-2 mb-2.5 sticky top-0 z-10 bg-gradient-to-b from-blue-50/90 dark:from-gray-900/90 to-transparent backdrop-blur-[2px] py-1">
-              <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-3 py-1 rounded-full">
-                {year}年
-              </span>
-              <span className="text-xs text-gray-400 dark:text-gray-500">
-                {yearItems.length}件
-              </span>
-              <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
-            </div>
-
-            {/* カードリスト */}
-            <div className="space-y-2.5">
-              {yearItems.map(item => (
-                <DisclosureCard
-                  key={item.id}
-                  item={item}
-                  selected={selectedIds.has(item.id)}
-                  onToggleSelect={onToggleSelect}
-                />
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
+      {groupByYear ? (
+        <div className="space-y-5">
+          {makeYearGroups(items).map(([year, yearItems]) => (
+            <section key={year}>
+              <div className="flex items-center gap-2 mb-2.5 sticky top-0 z-10 bg-gradient-to-b from-blue-50/90 dark:from-gray-900/90 to-transparent backdrop-blur-[2px] py-1">
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-3 py-1 rounded-full">
+                  {year}年
+                </span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">{yearItems.length}件</span>
+                <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+              </div>
+              <div className="space-y-2.5">
+                {yearItems.map(renderCard)}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {items.map(renderCard)}
+        </div>
+      )}
     </div>
   )
 }
